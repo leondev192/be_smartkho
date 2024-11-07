@@ -36,7 +36,8 @@ export class CreateUserDto {
   fullName: string;
 
   @ApiProperty({
-    example: 'https://example.com/avatar.jpg',
+    example:
+      'https://cdn1.iconfinder.com/data/icons/user-pictures/101/malecostume-1024.png',
     description: 'Đường dẫn đến ảnh đại diện',
   })
   @IsOptional()

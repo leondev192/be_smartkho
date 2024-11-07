@@ -1,5 +1,3 @@
-// supplier.controller.ts
-
 import {
   Controller,
   Post,
@@ -11,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
-import { Supplier } from '.prisma/client'; // Import Supplier model
 import { SupplierService } from '../services/supplier.service';
+import { Supplier } from '.prisma/client'; // Import Supplier model
 
 @ApiTags('Suppliers')
 @Controller('suppliers')
@@ -27,7 +25,7 @@ export class SupplierController {
   })
   async createSupplier(
     @Body() createSupplierDto: CreateSupplierDto,
-  ): Promise<Supplier> {
+  ): Promise<{ status: string; message: string; data: Supplier }> {
     return this.supplierService.createSupplier(createSupplierDto);
   }
 
@@ -40,7 +38,7 @@ export class SupplierController {
   async updateSupplier(
     @Param('id') id: string,
     @Body() updateSupplierDto: UpdateSupplierDto,
-  ): Promise<Supplier> {
+  ): Promise<{ status: string; message: string; data: Supplier }> {
     return this.supplierService.updateSupplier(id, updateSupplierDto);
   }
 
@@ -50,21 +48,29 @@ export class SupplierController {
     status: 200,
     description: 'Nhà cung cấp đã được xóa thành công.',
   })
-  async deleteSupplier(@Param('id') id: string): Promise<Supplier> {
+  async deleteSupplier(
+    @Param('id') id: string,
+  ): Promise<{ status: string; message: string; data: null }> {
     return this.supplierService.deleteSupplier(id);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách nhà cung cấp' })
   @ApiResponse({ status: 200, description: 'Danh sách nhà cung cấp.' })
-  async getAllSuppliers(): Promise<Supplier[]> {
+  async getAllSuppliers(): Promise<{
+    status: string;
+    message: string;
+    data: Supplier[];
+  }> {
     return this.supplierService.getAllSuppliers();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin nhà cung cấp theo ID' })
   @ApiResponse({ status: 200, description: 'Thông tin nhà cung cấp.' })
-  async getSupplierById(@Param('id') id: string): Promise<Supplier> {
+  async getSupplierById(
+    @Param('id') id: string,
+  ): Promise<{ status: string; message: string; data: Supplier }> {
     return this.supplierService.getSupplierById(id);
   }
 }

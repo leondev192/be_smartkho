@@ -1,5 +1,3 @@
-// product.controller.ts
-
 import {
   Controller,
   Post,
@@ -11,9 +9,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-import { Product } from '.prisma/client'; // Import Product model
 import { ProductService } from '../services/product.service';
 import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
+import { Product } from '@prisma/client';
 
 @ApiTags('Products')
 @Controller('products')
@@ -28,7 +26,7 @@ export class ProductController {
   })
   async createProduct(
     @Body() createProductDto: CreateProductDto,
-  ): Promise<Product> {
+  ): Promise<{ status: string; message: string; data: Product }> {
     return this.productService.createProduct(createProductDto);
   }
 
@@ -41,28 +39,36 @@ export class ProductController {
   async updateProduct(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
-  ): Promise<Product> {
+  ): Promise<{ status: string; message: string; data: Product }> {
     return this.productService.updateProduct(id, updateProductDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa sản phẩm' })
   @ApiResponse({ status: 200, description: 'Sản phẩm đã được xóa thành công.' })
-  async deleteProduct(@Param('id') id: string): Promise<Product> {
+  async deleteProduct(
+    @Param('id') id: string,
+  ): Promise<{ status: string; message: string; data: null }> {
     return this.productService.deleteProduct(id);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách sản phẩm' })
   @ApiResponse({ status: 200, description: 'Danh sách sản phẩm.' })
-  async getAllProducts(): Promise<Product[]> {
+  async getAllProducts(): Promise<{
+    status: string;
+    message: string;
+    data: Product[];
+  }> {
     return this.productService.getAllProducts();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin sản phẩm theo ID' })
   @ApiResponse({ status: 200, description: 'Thông tin sản phẩm.' })
-  async getProductById(@Param('id') id: string): Promise<Product> {
+  async getProductById(
+    @Param('id') id: string,
+  ): Promise<{ status: string; message: string; data: Product }> {
     return this.productService.getProductById(id);
   }
 }

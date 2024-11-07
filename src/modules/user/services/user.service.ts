@@ -27,11 +27,19 @@ export class UserService {
     const salt = await bcrypt.genSalt(10);
     return bcrypt.hash(password, salt);
   }
-
   async createUser(createUserDto: CreateUserDto) {
     const { email, fullName, role, avatarUrl, phoneNumber, address } =
       createUserDto;
 
+    // Kiểm tra nếu không có email
+    if (!email) {
+      return this.createResponse(
+        'error',
+        'Email là bắt buộc để tạo tài khoản.',
+      );
+    }
+
+    // Kiểm tra người dùng đã tồn tại
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -42,9 +50,11 @@ export class UserService {
       );
     }
 
+    // Tạo mật khẩu tạm thời và mã hóa
     const password = this.generateRandomPassword();
-    const hashedPassword = await this.hashPassword(password);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Tạo người dùng mới
     const newUser = await this.prisma.user.create({
       data: {
         email,
@@ -57,10 +67,10 @@ export class UserService {
       },
     });
 
+    // Gửi email chứa mật khẩu tạm thời
     await this.emailService.sendPasswordEmail(email, password);
     return this.createResponse('success', 'Tạo tài khoản thành công.', newUser);
   }
-
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
     const { email, fullName, role, avatarUrl, phoneNumber, address } =
       updateUserDto;

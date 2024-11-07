@@ -1,5 +1,3 @@
-// report.service.ts
-
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma.service';
 
@@ -7,7 +5,10 @@ import { PrismaService } from 'src/prisma/services/prisma.service';
 export class ReportService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getInventoryReport(startDate: string, endDate: string): Promise<any> {
+  async getInventoryReport(
+    startDate: string,
+    endDate: string,
+  ): Promise<{ status: string; message: string; data: any }> {
     const products = await this.prisma.product.findMany();
 
     const report = products.map((product) => ({
@@ -18,6 +19,10 @@ export class ReportService {
       needsRestock: product.quantityInStock < product.reorderLevel,
     }));
 
-    return report;
+    return {
+      status: 'success',
+      message: 'Báo cáo tồn kho đã được tạo thành công.',
+      data: report, // Trả về báo cáo dưới dạng dữ liệu
+    };
   }
 }

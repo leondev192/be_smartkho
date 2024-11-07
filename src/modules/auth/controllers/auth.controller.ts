@@ -6,6 +6,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   GoogleLoginDto,
+  VerifyOtpDto,
 } from '../dto/auth.dto';
 
 @ApiTags('Auth')
@@ -54,5 +55,18 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Đăng nhập thành công với Google.' })
   async loginWithGoogle(@Body() googleLoginDto: GoogleLoginDto) {
     return this.authService.loginWithGoogle(googleLoginDto.idToken);
+  }
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Xác minh mã OTP khi quên mật khẩu' })
+  @ApiResponse({
+    status: 200,
+    description: 'Xác minh mã OTP thành công.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Mã OTP không hợp lệ hoặc đã hết hạn.',
+  })
+  async verifyForgotPasswordOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyForgotPasswordOtp(verifyOtpDto);
   }
 }

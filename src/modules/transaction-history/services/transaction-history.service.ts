@@ -1,39 +1,43 @@
-// transaction-history.service.ts
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma.service';
-import { TransactionHistory } from '.prisma/client'; // Import TransactionHistory model
-import { Transaction } from '.prisma/client'; // Import Transaction model
+import { TransactionHistory } from '.prisma/client';
 
 @Injectable()
 export class TransactionHistoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getTransactionHistory(): Promise<TransactionHistory[]> {
-    return this.prisma.transactionHistory.findMany();
+  async getTransactionHistory(): Promise<{
+    status: string;
+    message: string;
+    data: TransactionHistory[];
+  }> {
+    const transactionHistory = await this.prisma.transactionHistory.findMany();
+    return {
+      status: 'success',
+      message: 'Transaction history.',
+      data: transactionHistory,
+    };
   }
 
   async getTransactionHistoryByProductId(
     productId: string,
-  ): Promise<TransactionHistory[]> {
-    const transactions: Transaction[] = await this.prisma.transaction.findMany({
-      where: {
-        productId: productId,
-      },
+  ): Promise<{ status: string; message: string; data: TransactionHistory[] }> {
+    // Ensure productId is a valid format or check its existence in the database if necessary
+    const transactionHistory = await this.prisma.transactionHistory.findMany({
+      where: { productId },
+      orderBy: { timestamp: 'desc' }, // Order by the timestamp of the transaction
     });
 
-    if (!transactions.length) {
-      throw new NotFoundException('Không có giao dịch nào cho sản phẩm này.');
+    if (!transactionHistory.length) {
+      throw new NotFoundException(
+        'No transaction history found for this product.',
+      );
     }
 
-    const transactionIds = transactions.map((transaction) => transaction.id);
-
-    return this.prisma.transactionHistory.findMany({
-      where: {
-        transactionId: {
-          in: transactionIds,
-        },
-      },
-    });
+    return {
+      status: 'success',
+      message: `Transaction history for product ${productId}.`,
+      data: transactionHistory,
+    };
   }
 }

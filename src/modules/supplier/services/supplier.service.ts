@@ -1,5 +1,3 @@
-// supplier.service.ts
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma.service';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
@@ -11,43 +9,82 @@ export class SupplierService {
 
   async createSupplier(
     createSupplierDto: CreateSupplierDto,
-  ): Promise<Supplier> {
-    return this.prisma.supplier.create({
+  ): Promise<{ status: string; message: string; data: Supplier }> {
+    const supplier = await this.prisma.supplier.create({
       data: createSupplierDto,
     });
+
+    return {
+      status: 'success',
+      message: 'Nhà cung cấp đã được thêm thành công.',
+      data: supplier,
+    };
   }
 
   async updateSupplier(
     id: string,
     updateSupplierDto: UpdateSupplierDto,
-  ): Promise<Supplier> {
+  ): Promise<{ status: string; message: string; data: Supplier }> {
     const supplier = await this.prisma.supplier.findUnique({ where: { id } });
     if (!supplier) {
       throw new NotFoundException('Nhà cung cấp không tồn tại.');
     }
-    return this.prisma.supplier.update({
+
+    const updatedSupplier = await this.prisma.supplier.update({
       where: { id },
       data: updateSupplierDto,
     });
+
+    return {
+      status: 'success',
+      message: 'Nhà cung cấp đã được cập nhật thành công.',
+      data: updatedSupplier,
+    };
   }
 
-  async deleteSupplier(id: string): Promise<Supplier> {
+  async deleteSupplier(
+    id: string,
+  ): Promise<{ status: string; message: string; data: null }> {
     const supplier = await this.prisma.supplier.findUnique({ where: { id } });
     if (!supplier) {
       throw new NotFoundException('Nhà cung cấp không tồn tại.');
     }
-    return this.prisma.supplier.delete({ where: { id } });
+
+    await this.prisma.supplier.delete({ where: { id } });
+
+    return {
+      status: 'success',
+      message: 'Nhà cung cấp đã được xóa thành công.',
+      data: null,
+    };
   }
 
-  async getAllSuppliers(): Promise<Supplier[]> {
-    return this.prisma.supplier.findMany();
+  async getAllSuppliers(): Promise<{
+    status: string;
+    message: string;
+    data: Supplier[];
+  }> {
+    const suppliers = await this.prisma.supplier.findMany();
+
+    return {
+      status: 'success',
+      message: 'Danh sách nhà cung cấp.',
+      data: suppliers,
+    };
   }
 
-  async getSupplierById(id: string): Promise<Supplier> {
+  async getSupplierById(
+    id: string,
+  ): Promise<{ status: string; message: string; data: Supplier }> {
     const supplier = await this.prisma.supplier.findUnique({ where: { id } });
     if (!supplier) {
       throw new NotFoundException('Nhà cung cấp không tồn tại.');
     }
-    return supplier;
+
+    return {
+      status: 'success',
+      message: 'Thông tin nhà cung cấp.',
+      data: supplier,
+    };
   }
 }

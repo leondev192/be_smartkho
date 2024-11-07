@@ -1,13 +1,11 @@
-// transaction.controller.ts
-
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   CreateTransactionDto,
   ApproveTransactionDto,
 } from '../dto/transaction.dto';
-import { Transaction } from '.prisma/client'; // Import Transaction model
 import { TransactionService } from '../services/transaction.service';
+import { Transaction } from '@prisma/client';
 
 @ApiTags('Transactions')
 @Controller('transactions')
@@ -22,7 +20,7 @@ export class TransactionController {
   })
   async createTransaction(
     @Body() createTransactionDto: CreateTransactionDto,
-  ): Promise<Transaction> {
+  ): Promise<{ status: string; message: string; data: Transaction }> {
     return this.transactionService.createTransaction(createTransactionDto);
   }
 
@@ -34,14 +32,18 @@ export class TransactionController {
   })
   async approveTransaction(
     @Body() approveTransactionDto: ApproveTransactionDto,
-  ): Promise<Transaction> {
+  ): Promise<{ status: string; message: string; data: Transaction }> {
     return this.transactionService.approveTransaction(approveTransactionDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách giao dịch' })
   @ApiResponse({ status: 200, description: 'Danh sách giao dịch.' })
-  async getAllTransactions(): Promise<Transaction[]> {
+  async getAllTransactions(): Promise<{
+    status: string;
+    message: string;
+    data: Transaction[];
+  }> {
     return this.transactionService.getAllTransactions();
   }
 
@@ -51,7 +53,22 @@ export class TransactionController {
     status: 200,
     description: 'Thống kê giao dịch theo loại và sản phẩm.',
   })
-  async getTransactionStatistics(): Promise<any> {
+  async getTransactionStatistics(): Promise<{
+    status: string;
+    message: string;
+    data: any;
+  }> {
     return this.transactionService.getTransactionStatistics();
+  }
+  @Get('by-product')
+  @ApiOperation({ summary: 'Lấy giao dịch theo sản phẩm' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lịch sử giao dịch cho sản phẩm cụ thể.',
+  })
+  async getTransactionsByProductId(
+    @Query('productId') productId: string,
+  ): Promise<{ status: string; message: string; data: Transaction[] }> {
+    return this.transactionService.getTransactionsByProductId(productId);
   }
 }

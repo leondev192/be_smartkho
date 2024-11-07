@@ -9,7 +9,7 @@ export class LoginDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ example: 'password', description: 'Mật khẩu' })
+  @ApiProperty({ example: 'vsmt9g37', description: 'Mật khẩu' })
   @IsNotEmpty()
   @IsString()
   password: string;
@@ -24,7 +24,20 @@ export class ForgotPasswordDto {
   @IsNotEmpty()
   email: string;
 }
+export class VerifyOtpDto {
+  @ApiProperty({
+    example: 'leovn.asia@gmail.com',
+    description: 'Email đã đăng ký',
+  })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
+  @ApiProperty({ example: '123456', description: 'Mã OTP để xác thực' })
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+}
 export class ResetPasswordDto {
   @ApiProperty({
     example: 'resetToken123',

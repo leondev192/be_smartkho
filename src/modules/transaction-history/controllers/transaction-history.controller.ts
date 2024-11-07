@@ -1,8 +1,6 @@
-// transaction-history.controller.ts
-
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { TransactionHistory } from '.prisma/client'; // Import TransactionHistory model
+import { TransactionHistory } from '.prisma/client';
 import { TransactionHistoryService } from '../services/transaction-history.service';
 
 @ApiTags('Transaction History')
@@ -15,7 +13,11 @@ export class TransactionHistoryController {
   @Get()
   @ApiOperation({ summary: 'Lấy lịch sử giao dịch' })
   @ApiResponse({ status: 200, description: 'Lịch sử giao dịch.' })
-  async getTransactionHistory(): Promise<TransactionHistory[]> {
+  async getTransactionHistory(): Promise<{
+    status: string;
+    message: string;
+    data: TransactionHistory[];
+  }> {
     return this.transactionHistoryService.getTransactionHistory();
   }
 
@@ -27,7 +29,7 @@ export class TransactionHistoryController {
   })
   async getTransactionHistoryByProductId(
     @Query('productId') productId: string,
-  ): Promise<TransactionHistory[]> {
+  ): Promise<{ status: string; message: string; data: TransactionHistory[] }> {
     return this.transactionHistoryService.getTransactionHistoryByProductId(
       productId,
     );

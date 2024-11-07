@@ -5,10 +5,10 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   GoogleLoginDto,
+  VerifyOtpDto,
 } from '../dto/auth.dto';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client } from 'google-auth-library';
-import { randomBytes } from 'crypto';
 import { RedisService } from 'src/redis/services/redis.service';
 import { sendOtpEmail } from '../utils/sendOtp.util'; // Tạo hàm gửi email OTP
 
@@ -45,21 +45,22 @@ export class AuthService {
       role: user.role,
     });
 
-    // Trả về đầy đủ thông tin của người dùng
     return {
       status: 'success',
       message: 'Đăng nhập thành công.',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        avatarUrl: user.avatarUrl,
-        phoneNumber: user.phoneNumber,
-        address: user.address,
-        role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          phoneNumber: user.phoneNumber,
+          address: user.address,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
       },
     };
   }
@@ -69,19 +70,27 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: email },
     });
+
     if (!user) {
       throw new BadRequestException('Email không tồn tại.');
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Tạo OTP ngẫu nhiên 6 chữ số
-    await sendOtpEmail(email, otp); // Gửi email OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    await sendOtpEmail(email, otp);
 
     await this.redisService.set(
       email,
-      JSON.stringify({ email, otpTimestamp: Date.now() }),
+      JSON.stringify({ otp: hashedOtp, otpTimestamp: Date.now() }),
       300,
     );
-    return { message: 'Mã OTP đã được gửi đến email của bạn.' };
+
+    return {
+      status: 'success',
+      message: 'Mã OTP đã được gửi đến email của bạn.',
+      data: null,
+    };
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
@@ -106,7 +115,11 @@ export class AuthService {
     });
     await this.redisService.del(resetToken);
 
-    return { message: 'Mật khẩu đã được cập nhật thành công.' };
+    return {
+      status: 'success',
+      message: 'Mật khẩu đã được cập nhật thành công.',
+      data: null,
+    };
   }
 
   async loginWithGoogle(idToken: string) {
@@ -141,22 +154,50 @@ export class AuthService {
       });
 
       return {
+        status: 'success',
         message: 'Đăng nhập Google thành công.',
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          avatarUrl: user.avatarUrl,
-          phoneNumber: user.phoneNumber,
-          address: user.address,
-          role: user.role,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
+        data: {
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            avatarUrl: user.avatarUrl,
+            phoneNumber: user.phoneNumber,
+            address: user.address,
+            role: user.role,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          },
         },
       };
     } catch (error) {
       throw new BadRequestException('Đăng nhập với Google thất bại.');
     }
+  }
+
+  async verifyForgotPasswordOtp(verifyOtpDto: VerifyOtpDto) {
+    const { email, otp } = verifyOtpDto;
+    this.logger.log(`Verifying OTP for email: ${email}`);
+
+    const data = await this.redisService.get(email);
+    if (!data) {
+      throw new BadRequestException('OTP không hợp lệ hoặc đã hết hạn.');
+    }
+
+    const { otp: storedOtp } = JSON.parse(data);
+    const isOtpMatching = await bcrypt.compare(otp, storedOtp);
+
+    if (!isOtpMatching) {
+      throw new BadRequestException('Mã OTP không đúng.');
+    }
+
+    await this.redisService.del(email);
+
+    return {
+      status: 'success',
+      message: 'Xác minh OTP thành công. Bạn có thể đặt lại mật khẩu.',
+      data: null,
+    };
   }
 }

@@ -45,6 +45,11 @@ export class CreateProductDto {
 }
 
 export class UpdateProductDto {
+  @ApiProperty({ example: 'SKU123456', description: 'Mã SKU của sản phẩm' })
+  @IsOptional()
+  @IsString()
+  sku?: string;
+
   @ApiProperty({ example: 'Nước khoáng', description: 'Tên sản phẩm' })
   @IsOptional()
   @IsString()

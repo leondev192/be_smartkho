@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,85 +6,93 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
-// Mô hình người dùng
+
+// User model
 model User {
-  id         String   @id @default(uuid()) @map("_id") // ID người dùng
-  email      String   @unique                           // Tên đăng nhập
-  password   String                                    // Mật khẩu (nên mã hóa)
-  fullName   String                                    // Tên đầy đủ
-  avatarUrl  String?                                   // Đường dẫn đến ảnh đại diện
-  phoneNumber String?                                   // Số điện thoại
-  address     String?                                   // Địa chỉ
-  role       RoleEnum                                  // Vai trò người dùng
-  createdAt  DateTime @default(now())                  // Ngày tạo
-  updatedAt  DateTime @updatedAt                        // Ngày cập nhật
+  id          String    @id @default(uuid()) @map("_id")
+  email       String    @unique
+  password    String
+  fullName    String
+  avatarUrl   String?
+  phoneNumber String?
+  address     String?
+  role        RoleEnum
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
-// Mô hình sản phẩm
+
+// Product model
 model Product {
-  id              String  @id @default(uuid()) @map("_id") // ID sản phẩm
-  sku             String  @unique                           // Mã SKU duy nhất của sản phẩm
-  name            String                                    // Tên sản phẩm
-  description     String?                                   // Mô tả sản phẩm
-  category        String?                                   // Danh mục sản phẩm
-  quantityInStock Int      @default(0)                      // Số lượng tồn kho hiện tại
-  reorderLevel    Int      @default(10)                     // Mức tồn kho tối thiểu
-  createdAt       DateTime @default(now())                  // Ngày tạo
-  updatedAt       DateTime @updatedAt                       // Ngày cập nhật
-  transactions    Transaction[]                             // Danh sách giao dịch liên quan đến sản phẩm
-  supplierId      String?                                   // ID nhà cung cấp
-  supplier        Supplier? @relation(fields: [supplierId], references: [id]) // Liên kết tới nhà cung cấp
+  id              String              @id @default(uuid()) @map("_id")
+  sku             String              @unique
+  name            String
+  description     String?
+  category        String?
+  quantityInStock Int                 @default(0)          // Tracks current stock level
+  reorderLevel    Int                 @default(10)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  transactions    Transaction[]       // List of related transactions
+  supplierId      String?
+  supplier        Supplier?           @relation(fields: [supplierId], references: [id])
+  transactionHistory TransactionHistory[] // List of related transaction histories
 }
 
-// Mô hình giao dịch nhập/xuất kho
+// Transaction model for stock movements
 model Transaction {
-  id               String   @id @default(uuid()) @map("_id")   // ID giao dịch
-  productId        String                                        // ID sản phẩm liên kết
-  transactionType  TransactionType                             // Loại giao dịch ("IN" = nhập, "OUT" = xuất)
-  quantity         Int                                          // Số lượng nhập/xuất
-  transactionDate  DateTime @default(now())                    // Ngày thực hiện giao dịch
-  approved         Boolean  @default(false)                    // Trạng thái phê duyệt
-  approvedBy       String?                                       // ID người phê duyệt (nếu có)
-  createdBy        String                                        // ID người tạo giao dịch
-  remarks          String?                                       // Ghi chú thêm cho giao dịch
+  id               String              @id @default(uuid()) @map("_id")
+  productId        String
+  transactionType  TransactionType
+  quantity         Int
+  transactionDate  DateTime            @default(now())
+  approved         Boolean             @default(false)
+  approvedBy       String?
+  createdBy        String
+  remarks          String?
 
-  product          Product  @relation(fields: [productId], references: [id]) // Liên kết tới sản phẩm
+  product          Product             @relation(fields: [productId], references: [id])
+  transactionHistory TransactionHistory[] // Link to transaction history
 }
 
-// Cấu trúc mẫu của mô hình TransactionHistory
+// TransactionHistory model to record each transaction's effect on stock
 model TransactionHistory {
-  id               String   @id @default(uuid()) @map("_id")   // ID lịch sử giao dịch
-  transactionId    String                                        // ID giao dịch từ Transaction
-  action           String                                        // Hành động (nhập hoặc xuất)
-  quantity         Int                                          // Số lượng nhập/xuất
-  userId           String                                        // ID người thực hiện giao dịch
-  timestamp        DateTime @default(now())                     // Thời gian thực hiện
+  id               String              @id @default(uuid()) @map("_id")
+  transactionId    String
+  productId        String
+  action           String
+  quantity         Int
+  userId           String
+  timestamp        DateTime            @default(now())
+
+  product          Product             @relation(fields: [productId], references: [id])
+  transaction      Transaction         @relation(fields: [transactionId], references: [id])
 }
 
-// Mô hình nhà cung cấp
+// Supplier model
 model Supplier {
-  id          String   @id @default(uuid()) @map("_id")       // ID nhà cung cấp
-  name        String   @unique                                  // Tên nhà cung cấp
-  contactInfo String?                                         // Thông tin liên lạc
-  address     String?                                         // Địa chỉ
-  products    Product[]                                      // Danh sách sản phẩm cung cấp
+  id          String    @id @default(uuid()) @map("_id")
+  name        String    @unique
+  contactInfo String?
+  address     String?
+  products    Product[]
 }
 
-// Mô hình thông báo
+// Notification model
 model Notification {
-  id          String   @id @default(uuid()) @map("_id")      // ID thông báo
-  userId      String                                        // ID người nhận thông báo
-  message     String                                        // Nội dung thông báo
-  read        Boolean   @default(false)                      // Trạng thái đã đọc
-  createdAt   DateTime @default(now())                       // Ngày tạo thông báo
+  id          String    @id @default(uuid()) @map("_id")
+  userId      String
+  message     String
+  read        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
 }
 
-// Enum cho vai trò người dùng
+// Enum for user roles
 enum RoleEnum {
   ADMIN
   WAREHOUSE_STAFF
 }
 
-// Enum cho loại giao dịch
+// Enum for transaction types
 enum TransactionType {
   IN
   OUT

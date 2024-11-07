@@ -1,12 +1,14 @@
-// transaction.service.ts
-
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/services/prisma.service';
 import {
   CreateTransactionDto,
   ApproveTransactionDto,
 } from '../dto/transaction.dto';
-import { Transaction } from '.prisma/client'; // Import Transaction model
+import { Transaction, Product } from '.prisma/client';
 
 @Injectable()
 export class TransactionService {
@@ -14,49 +16,125 @@ export class TransactionService {
 
   async createTransaction(
     createTransactionDto: CreateTransactionDto,
-  ): Promise<Transaction> {
-    return this.prisma.transaction.create({
+  ): Promise<{ status: string; message: string; data: Transaction }> {
+    const { productId, transactionType, quantity } = createTransactionDto;
+
+    // Fetch product to check current stock level
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found.`);
+    }
+
+    // Adjust stock based on transaction type
+    let updatedQuantity = product.quantityInStock; // Use `quantityInStock` instead of `stockQuantity`
+    if (transactionType === 'IN') {
+      updatedQuantity += quantity;
+    } else if (transactionType === 'OUT') {
+      if (product.quantityInStock < quantity) {
+        throw new BadRequestException('Not enough stock for this transaction.');
+      }
+      updatedQuantity -= quantity;
+    } else {
+      throw new BadRequestException('Invalid transaction type.');
+    }
+
+    // Update the product's quantity in stock
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: { quantityInStock: updatedQuantity }, // Update `quantityInStock`
+    });
+
+    // Record the transaction
+    const transaction = await this.prisma.transaction.create({
       data: {
         ...createTransactionDto,
-        createdBy: 'adminId', // Thay thế bằng ID người tạo thực tế
+        createdBy: 'adminId', // Replace with actual user ID
       },
     });
+
+    return {
+      status: 'success',
+      message: 'Transaction successfully created.',
+      data: transaction,
+    };
   }
 
   async approveTransaction(
     approveTransactionDto: ApproveTransactionDto,
-  ): Promise<Transaction> {
+  ): Promise<{ status: string; message: string; data: Transaction }> {
     const transaction = await this.prisma.transaction.findUnique({
       where: { id: approveTransactionDto.transactionId },
     });
     if (!transaction) {
-      throw new NotFoundException('Giao dịch không tồn tại.');
+      throw new NotFoundException('Transaction not found.');
     }
 
-    return this.prisma.transaction.update({
+    const updatedTransaction = await this.prisma.transaction.update({
       where: { id: approveTransactionDto.transactionId },
       data: {
         approved: true,
-        approvedBy: 'adminId', // Thay thế bằng ID người phê duyệt thực tế
+        approvedBy: 'adminId', // Replace with actual user ID
       },
     });
+
+    return {
+      status: 'success',
+      message: 'Transaction approved successfully.',
+      data: updatedTransaction,
+    };
   }
 
-  async getAllTransactions(): Promise<Transaction[]> {
-    return this.prisma.transaction.findMany();
-  }
-
-  async getTransactionStatistics(): Promise<any> {
+  async getAllTransactions(): Promise<{
+    status: string;
+    message: string;
+    data: Transaction[];
+  }> {
     const transactions = await this.prisma.transaction.findMany();
-    // Thống kê giao dịch theo loại (nhập/xuất), sản phẩm và thời gian
+    return {
+      status: 'success',
+      message: 'List of transactions.',
+      data: transactions,
+    };
+  }
+
+  async getTransactionStatistics(): Promise<{
+    status: string;
+    message: string;
+    data: any;
+  }> {
+    const transactions = await this.prisma.transaction.findMany();
     const stats = transactions.reduce((acc, transaction) => {
       const type = transaction.transactionType;
       const productId = transaction.productId;
       acc[type] = acc[type] || {};
-      acc[type][productId] = (acc[type][productId] || 0) + transaction.quantity;
+      acc[type][productId] = (acc[type][productId] || 0) + 1;
       return acc;
     }, {});
 
-    return stats;
+    return {
+      status: 'success',
+      message: 'Transaction statistics by type and product.',
+      data: stats,
+    };
+  }
+  async getTransactionsByProductId(
+    productId: string,
+  ): Promise<{ status: string; message: string; data: Transaction[] }> {
+    const transactions = await this.prisma.transaction.findMany({
+      where: { productId },
+    });
+
+    if (!transactions.length) {
+      throw new NotFoundException('Không có giao dịch nào cho sản phẩm này.');
+    }
+
+    return {
+      status: 'success',
+      message: `Lịch sử giao dịch cho sản phẩm ${productId}.`,
+      data: transactions,
+    };
   }
 }
