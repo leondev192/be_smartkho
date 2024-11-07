@@ -86,16 +86,24 @@ export class TransactionService {
       data: updatedTransaction,
     };
   }
-
   async getAllTransactions(): Promise<{
     status: string;
     message: string;
-    data: Transaction[];
+    data: (Transaction & { product: { name: string } })[];
   }> {
-    const transactions = await this.prisma.transaction.findMany();
+    const transactions = await this.prisma.transaction.findMany({
+      include: {
+        product: {
+          select: {
+            name: true, // Select only the product name
+          },
+        },
+      },
+    });
+
     return {
       status: 'success',
-      message: 'List of transactions.',
+      message: 'List of transactions with product names.',
       data: transactions,
     };
   }
