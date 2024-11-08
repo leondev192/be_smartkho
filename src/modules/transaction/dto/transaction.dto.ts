@@ -5,10 +5,10 @@ import { IsString, IsNotEmpty, IsEnum, IsInt } from 'class-validator';
 import { TransactionType } from '.prisma/client'; // Import enum TransactionType
 
 export class CreateTransactionDto {
-  @ApiProperty({ example: 'productId123', description: 'ID sản phẩm liên kết' })
+  @ApiProperty({ example: 'SKU123456', description: 'SKU của sản phẩm' })
   @IsNotEmpty()
   @IsString()
-  productId: string;
+  sku: string;
 
   @ApiProperty({
     example: 'IN',

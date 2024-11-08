@@ -17,19 +17,22 @@ export class TransactionService {
   async createTransaction(
     createTransactionDto: CreateTransactionDto,
   ): Promise<{ status: string; message: string; data: Transaction }> {
-    const { productId, transactionType, quantity } = createTransactionDto;
+    const { sku, transactionType, quantity } = createTransactionDto;
 
-    // Fetch product to check current stock level
+    // Fetch product by SKU to get the product ID and check stock levels
     const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+      where: { sku },
     });
 
     if (!product) {
-      throw new NotFoundException(`Product with ID ${productId} not found.`);
+      throw new NotFoundException(`Product with SKU ${sku} not found.`);
     }
 
+    // Use the product's ID for the transaction
+    const productId = product.id;
+
     // Adjust stock based on transaction type
-    let updatedQuantity = product.quantityInStock; // Use `quantityInStock` instead of `stockQuantity`
+    let updatedQuantity = product.quantityInStock;
     if (transactionType === 'IN') {
       updatedQuantity += quantity;
     } else if (transactionType === 'OUT') {
@@ -44,14 +47,17 @@ export class TransactionService {
     // Update the product's quantity in stock
     await this.prisma.product.update({
       where: { id: productId },
-      data: { quantityInStock: updatedQuantity }, // Update `quantityInStock`
+      data: { quantityInStock: updatedQuantity },
     });
 
-    // Record the transaction
+    // Record the transaction with the product ID found by SKU
     const transaction = await this.prisma.transaction.create({
       data: {
-        ...createTransactionDto,
+        productId,
+        transactionType,
+        quantity,
         createdBy: 'adminId', // Replace with actual user ID
+        remarks: createTransactionDto.remarks,
       },
     });
 
